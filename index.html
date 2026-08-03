@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>退休倒计时 ✨</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Helvetica Neue", Arial, sans-serif;
+      position: relative;
+    }
+
+    /* 梦幻渐变背景 */
+    .bg-gradient {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(180deg, #FFE4F0 0%, #F0E6FF 35%, #E0F0FF 70%, #FFF0F5 100%);
+    }
+
+    /* Canvas 烟花层 */
+    #fireworks {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: block;
+    }
+
+    /* 可爱圆点花纹背景 */
+    .bg-dots {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.3;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 182, 193, 0.5) 2px, transparent 2px),
+        radial-gradient(circle at 30% 70%, rgba(221, 160, 221, 0.4) 3px, transparent 3px),
+        radial-gradient(circle at 70% 30%, rgba(176, 224, 230, 0.4) 2px, transparent 2px),
+        radial-gradient(circle at 90% 80%, rgba(255, 218, 185, 0.5) 2px, transparent 2px),
+        radial-gradient(circle at 50% 50%, rgba(240, 230, 140, 0.3) 4px, transparent 4px);
+      background-size: 120px 120px, 180px 180px, 150px 150px, 200px 200px, 250px 250px;
+    }
+
+    /* 漂浮装饰容器 */
+    .floating-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .float-item {
+      position: absolute;
+      opacity: 0.5;
+    }
+
+    .float-item svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+
+    .float-star { animation: float 6s ease-in-out infinite; opacity: 0.6; }
+    .float-heart { animation: floatSlow 10s ease-in-out infinite; opacity: 0.5; }
+    .float-bubble {
+      border-radius: 50%;
+      animation: float 7s ease-in-out infinite;
+      opacity: 0.4;
+    }
+    .float-cloud { animation: floatSlow 12s ease-in-out infinite; opacity: 0.3; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      25% { transform: translateY(-15px) translateX(10px); }
+      75% { transform: translateY(-10px) translateX(-10px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .pulse-heart {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* 主内容区 */
+    .main-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+    }
+
+    /* 顶部装饰 */
+    .top-deco {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      opacity: 0.7;
+      font-size: 24px;
+    }
+
+    /* 标题 */
+    .title-section {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .title-emoji {
+      font-size: 28px;
+    }
+
+    .main-title {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #FF8FB1 0%, #C084FC 50%, #60A5FA 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.1em;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: rgba(236, 72, 153, 0.7);
+      letter-spacing: 0.15em;
+    }
+
+    /* 天数 - 最大最醒目 */
+    .days-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .days-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 28px;
+      box-shadow: 0 10px 40px rgba(192, 132, 252, 0.15);
+      border: 2px solid rgba(249, 168, 212, 0.5);
+      padding: 20px 36px;
+    }
+
+    .deco-corner {
+      position: absolute;
+      font-size: 20px;
+    }
+    .deco-tl { top: -10px; left: -6px; }
+    .deco-tr { top: -10px; right: -6px; }
+    .deco-bl { bottom: -6px; left: -4px; font-size: 16px; }
+    .deco-br { bottom: -6px; right: -4px; font-size: 16px; }
+
+    .days-number {
+      font-size: 72px;
+      font-weight: 900;
+      background: linear-gradient(180deg, #F472B6 0%, #A78BFA 50%, #60A5FA 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .days-label {
+      margin-top: 12px;
+      font-size: 22px;
+      color: #A78BFA;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+    }
+
+    /* 时分秒行 */
+    .hms-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .hms-unit {
+      flex: 1;
+      max-width: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hms-card {
+      position: relative;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 18px;
+      box-shadow: 0 4px 20px rgba(192, 132, 252, 0.1);
+      padding: 14px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hms-card.hours { border: 1px solid rgba(192, 132, 252, 0.4); }
+    .hms-card.minutes { border: 1px solid rgba(96, 165, 250, 0.4); }
+    .hms-card.seconds { border: 1px solid rgba(244, 114, 182, 0.4); }
+
+    .hms-icon {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+    }
+
+    .hms-number {
+      font-size: 40px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .hours .hms-number { color: #A78BFA; }
+    .minutes .hms-number { color: #60A5FA; }
+    .seconds .hms-number { color: #F472B6; }
+
+    .hms-label {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .hours .hms-label { color: rgba(167, 139, 250, 0.6); }
+    .minutes .hms-label { color: rgba(96, 165, 250, 0.6); }
+    .seconds .hms-label { color: rgba(244, 114, 182, 0.6); }
+
+    .hms-colon {
+      font-size: 36px;
+      font-weight: 800;
+      color: #F9A8D4;
+      margin-top: -16px;
+    }
+
+    /* 目标日期 */
+    .target-date {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 14px;
+      color: rgba(167, 139, 250, 0.7);
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+
+    /* 底部装饰 */
+    .bottom-deco {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      opacity: 0.8;
+    }
+
+    .bottom-deco span {
+      font-size: 20px;
+    }
+
+    .bottom-text {
+      font-size: 13px;
+      color: rgba(244, 114, 182, 0.6);
+      letter-spacing: 0.2em;
+      font-weight: 500;
+    }
+
+    /* 平板以上适配 */
+    @media (min-width: 768px) {
+      .title-emoji { font-size: 36px; }
+      .main-title { font-size: 48px; }
+      .subtitle { font-size: 18px; }
+
+      .days-card { padding: 28px 56px; border-radius: 36px; }
+      .days-number { font-size: 110px; }
+      .days-label { font-size: 28px; }
+
+      .hms-row { max-width: 520px; gap: 16px; }
+      .hms-unit { max-width: 130px; }
+      .hms-card { padding: 20px 0; border-radius: 24px; }
+      .hms-number { font-size: 56px; }
+      .hms-label { font-size: 16px; margin-top: 10px; }
+      .hms-colon { font-size: 48px; margin-top: -20px; }
+
+      .target-date { font-size: 16px; margin-top: 40px; }
+      .bottom-text { font-size: 14px; }
+      .deco-corner { font-size: 28px; }
+      .deco-bl, .deco-br { font-size: 22px; }
+    }
+
+    /* 小屏适配 */
+    @media (max-width: 360px) {
+      .main-title { font-size: 26px; }
+      .days-number { font-size: 60px; }
+      .days-card { padding: 16px 28px; }
+      .hms-number { font-size: 32px; }
+      .hms-card { padding: 10px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <canvas id="fireworks"></canvas>
+  <div class="bg-dots"></div>
+
+  <!-- 漂浮装饰层 -->
+  <div class="floating-layer" id="floatingLayer"></div>
+
+  <!-- 主内容 -->
+  <div class="main-content">
+    <div class="top-deco">
+      <span>☁️</span>
+      <span>✨</span>
+      <span>☁️</span>
+    </div>
+
+    <div class="title-section">
+      <div class="title-row">
+        <span class="title-emoji">🌸</span>
+        <h1 class="main-title">退休倒计时</h1>
+        <span class="title-emoji">🌸</span>
+      </div>
+      <p class="subtitle">✨ 距离甜甜的退休生活还有 ✨</p>
+    </div>
+
+    <div class="days-section">
+      <div class="days-card">
+        <span class="deco-corner deco-tl">💖</span>
+        <span class="deco-corner deco-tr">💖</span>
+        <span class="deco-corner deco-bl">⭐</span>
+        <span class="deco-corner deco-br">⭐</span>
+        <div class="days-number" id="days">0</div>
+      </div>
+      <div class="days-label">天</div>
+    </div>
+
+    <div class="hms-row">
+      <div class="hms-unit">
+        <div class="hms-card hours">
+          <span class="hms-icon">🌙</span>
+          <div class="hms-number" id="hours">00</div>
+        </div>
+        <div class="hms-label">时</div>
+      </div>
+
+      <div class="hms-colon">:</div>
+
+      <div class="hms-unit">
+        <div class="hms-card minutes">
+          <span class="hms-icon">☁️</span>
+          <div class="hms-number" id="minutes">00</div>
+        </div>
+        <div class="hms-label">分</div>
+      </div>
+
+      <div class="hms-colon">:</div>
+
+      <div class="hms-unit">
+        <div class="hms-card seconds">
+          <span class="hms-icon pulse-heart">💗</span>
+          <div class="hms-number" id="seconds">00</div>
+        </div>
+        <div class="hms-label">秒</div>
+      </div>
+    </div>
+
+    <div class="target-date">
+      🎀 目标日期：2054年6月20日 🎀
+    </div>
+
+    <div class="bottom-deco">
+      <span>🌈</span>
+      <span class="bottom-text">岁月静好 未来可期</span>
+      <span>🌈</span>
+    </div>
+  </div>
+
+  <script>
+    // ========== 配置 ==========
+    var RETIREMENT_DATE = new Date(2054, 5, 20, 0, 0, 0); // 2054年6月20日
+
+    var FIREWORK_COLORS = [
+      '#FFB6C1', '#FFC0CB', '#DDA0DD', '#E6E6FA',
+      '#B0E0E6', '#ADD8E6', '#FFE4E1', '#F0E68C',
+      '#FFDAB9', '#E0BBE4'
+    ];
+
+    var FLOAT_COLORS = ['#FFB6C1', '#DDA0DD', '#B0E0E6', '#FFE4E1', '#E0BBE4', '#F0E68C'];
+
+    // ========== 工具函数 ==========
+    function pad(n) {
+      return n.toString().padStart(2, '0');
+    }
+
+    function randomColor() {
+      return FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+    }
+
+    // ========== 倒计时 ==========
+    function calcTimeLeft(target) {
+      var total = target.getTime() - Date.now();
+      if (total <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
+      }
+      return {
+        days: Math.floor(total / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((total / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((total / (1000 * 60)) % 60),
+        seconds: Math.floor((total / 1000) % 60),
+        total: total
+      };
+    }
+
+    function updateCountdown() {
+      var tl = calcTimeLeft(RETIREMENT_DATE);
+      document.getElementById('days').textContent = tl.days.toLocaleString();
+      document.getElementById('hours').textContent = pad(tl.hours);
+      document.getElementById('minutes').textContent = pad(tl.minutes);
+      document.getElementById('seconds').textContent = pad(tl.seconds);
+
+      if (tl.total <= 0 && !isCelebrating) {
+        isCelebrating = true;
+        // 30秒后停止密集烟花
+        setTimeout(function() { isCelebrating = false; }, 30000);
+      }
+    }
+
+    // ========== 烟花系统 ==========
+    var canvas = document.getElementById('fireworks');
+    var ctx = canvas.getContext('2d');
+    var fireworks = [];
+    var particles = [];
+    var isCelebrating = false;
+    var lastLaunch = 0;
+    var launchInterval = 1800;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function launchFirework() {
+      var w = canvas.width;
+      var h = canvas.height;
+      var x = Math.random() * w * 0.8 + w * 0.1;
+      var targetY = Math.random() * h * 0.45 + h * 0.08;
+      fireworks.push({
+        x: x,
+        y: h,
+        targetY: targetY,
+        vy: -(5 + Math.random() * 2.5),
+        color: randomColor(),
+        trail: [],
+        exploded: false
+      });
+    }
+
+    function createExplosion(x, y, color, count) {
+      count = count || 70;
+      for (var i = 0; i < count; i++) {
+        var angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+        var speed = 1.5 + Math.random() * 3.5;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 1,
+          color: color,
+          size: 2.5 + Math.random() * 2.5,
+          gravity: 0.025,
+          decay: 0.006 + Math.random() * 0.006
+        });
+      }
+    }
+
+    function animate(time) {
+      // 梦幻拖尾
+      ctx.fillStyle = 'rgba(255, 240, 250, 0.12)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 定时发射烟花
+      if (time - lastLaunch > launchInterval + Math.random() * 1200) {
+        launchFirework();
+        lastLaunch = time;
+      }
+
+      // 庆祝模式密集发射
+      if (isCelebrating && Math.random() < 0.18) {
+        launchFirework();
+      }
+
+      // 更新上升烟花
+      for (var i = fireworks.length - 1; i >= 0; i--) {
+        var fw = fireworks[i];
+        fw.trail.push({ x: fw.x, y: fw.y });
+        if (fw.trail.length > 14) fw.trail.shift();
+
+        fw.y += fw.vy;
+        fw.vy += 0.018;
+
+        // 绘制拖尾
+        for (var j = 0; j < fw.trail.length; j++) {
+          var t = fw.trail[j];
+          var alpha = (j / fw.trail.length) * 0.7;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, 2.5, 0, Math.PI * 2);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = fw.color;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // 绘制烟花弹头部
+        ctx.beginPath();
+        ctx.arc(fw.x, fw.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = fw.color;
+        ctx.shadowColor = fw.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 爆炸判定
+        if (fw.y <= fw.targetY || fw.vy >= -0.8) {
+          createExplosion(fw.x, fw.y, fw.color, isCelebrating ? 90 : 70);
+          fireworks.splice(i, 1);
+        }
+      }
+
+      // 更新爆炸粒子
+      for (var k = particles.length - 1; k >= 0; k--) {
+        var p = particles[k];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.vx *= 0.992;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(k, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // ========== 漂浮装饰生成 ==========
+    function generateFloatingItems() {
+      var layer = document.getElementById('floatingLayer');
+      var count = 20;
+      var types = ['star', 'heart', 'bubble', 'cloud'];
+
+      for (var i = 0; i < count; i++) {
+        var type = types[Math.floor(Math.random() * types.length)];
+        var color = FLOAT_COLORS[Math.floor(Math.random() * FLOAT_COLORS.length)];
+        var size = 10 + Math.random() * 28;
+        var delay = Math.random() * 8;
+        var duration = 6 + Math.random() * 8;
+        var x = Math.random() * 100;
+        var y = Math.random() * 100;
+
+        var el = document.createElement('div');
+        el.className = 'float-item float-' + type;
+        el.style.left = x + '%';
+        el.style.top = y + '%';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.animationDelay = delay + 's';
+        el.style.animationDuration = duration + 's';
+        el.style.color = color;
+
+        if (type === 'star') {
+          el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+        } else if (type === 'heart') {
+          el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+        } else if (type === 'bubble') {
+          el.style.background = 'radial-gradient(circle at 30% 30%, white, ' + color + ')';
+        } else if (type === 'cloud') {
+          el.style.width = (size * 2) + 'px';
+          el.innerHTML = '<svg viewBox="0 0 64 32"><ellipse cx="20" cy="20" rx="14" ry="10"/><ellipse cx="38" cy="18" rx="16" ry="12"/><ellipse cx="50" cy="22" rx="10" ry="8"/><ellipse cx="28" cy="14" rx="10" ry="8"/></svg>';
+        }
+
+        layer.appendChild(el);
+      }
+    }
+
+    // ========== 启动 ==========
+    generateFloatingItems();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
